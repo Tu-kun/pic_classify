@@ -1,0 +1,3 @@
+[console_scripts]
+lac = LAC.cmdline:main
+
