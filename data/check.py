@@ -1,4 +1,4 @@
-with open('result_test.txt', 'r', encoding='utf-8') as f:
+with open('result.txt', 'r', encoding='utf-8') as f:
     lines = f.read().splitlines()
 
 def isNone(item, count = 0):
@@ -18,7 +18,6 @@ key_words_none = 0
 
 for line in lines:
     line = line.split('\t')
-
     year = line[2]
     month = line[3]
     day = line[4]
@@ -26,7 +25,6 @@ for line in lines:
     nationality = line[6]
     loc = line[7]
     key_words = line[8]
-
 
     year_none = isNone(year, year_none)
     month_none = isNone(month, month_none)
@@ -44,3 +42,4 @@ print('摄影师为空的数据个数:{}'.format(auth_none))
 print('摄影师国籍为空的数据个数:{}'.format(nationality_none))
 print('拍摄地点为空的数据个数:{}'.format(loc_none))
 print('关键字为空的数据个数:{}'.format(key_words_none))
+

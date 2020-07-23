@@ -789,6 +789,7 @@ latterly nx
 每天 r
 每个 r
 每年 r
+命名 v
 每当 p
 目前 t
 满足 v
@@ -1611,6 +1612,7 @@ yourselves nx
 正常 a
 照 v
 照着 nz
+照片 n
 掌握 v
 至 v
 至于 p
