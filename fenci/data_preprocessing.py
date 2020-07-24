@@ -21,16 +21,17 @@ def timmer(func):
 class pic_classify:
 
     def __init__(self, listDirs, result_path):
-        # 添加自定义词典
-        self.load_dic()
         self.listDirs = listDirs
         self.result_path = result_path
         self.last_title = ''  # 存放上一次的图片标题
         self.last_result = []  # 存放上一次的处理结果
         self.last_number = ''  # 存放上一次的处理结果,每次编号都不一样
 
-        self.lac = LAC(mode='lac')
-        self.seg = LAC(mode='seg')
+        self.lac = LAC(mode='lac')  # 初始化lac模型
+        self.seg = LAC(mode='seg')  # 初始化seg模型
+        # 添加自定义词典
+        self.places, self.countries, self.stop_words, self.names = None, None, None, None
+        self.load_dic()
 
     def load_dic(self):
         """
@@ -38,13 +39,13 @@ class pic_classify:
         :return:
         """
         # 添加自定义词典
-        Path = os.path.dirname(os.getcwd())
-        ciku_Path = Path + os.sep + "词库" + os.sep
+        root_Path = os.path.dirname(os.getcwd())
+        ciku_Path = root_Path + os.sep + "词库" + os.sep
 
         self.places = self.load_Userdict(ciku_Path + '中国风景名胜.txt')
         self.countries = self.load_Userdict(ciku_Path + '国家和地区词库.txt')
         self.stop_words = self.load_Userdict(ciku_Path + 'stop-words.txt')
-        self.names = self.load_Userdict(ciku_Path + 'names.txt')
+        self.names = self.load_Userdict(ciku_Path + 'names.txt')  # 用户提供的姓名
 
     def load_Userdict(self, path):
         """
@@ -52,8 +53,8 @@ class pic_classify:
         :param path:
         :return:返回字典格式的信息
         """
-        with open(path, 'r', encoding='utf-8') as f:
-            user_dic = f.read().splitlines()
+        with open(path, 'r', encoding='utf-8') as file:
+            user_dic = file.read().splitlines()
             dic = {}
             for i in user_dic:
                 line = i.split(' ')
@@ -90,8 +91,12 @@ class pic_classify:
                 pass
 
         # 考虑日期格式读取错误导致月份大于12（通常为连续读取两个年份如20102012），同时统计月份为空的数据
+
         if month is None or int(month) > 12:
             month, day = self.get_monthAndDay(title)
+
+        if not month is None and len(str(month)) == 1:
+            month = '0' + str(month)
 
         time = year, month, day
         return time
@@ -117,12 +122,14 @@ class pic_classify:
             day = re.match(r'^\d{1,2}', time).group()
             month = re.search(r'\d{1,2}', time[2:]).group()
         except Exception:
-            print("时间读取失败")
-        try:
-            time = re.search(r'\d{1,2}月', title).group()
-            month = re.search(r'\d{1,2}', time).group()
-        except Exception:
-            print("时间读取失败")
+            try:
+                time = re.search(r'\d{1,2}月', title).group()
+                month = re.search(r'\d{1,2}', time).group()
+            except Exception:
+                print("时间读取失败2")
+
+        if month is None or int(month) > 12:
+            month, day = None, None
 
         # Z:\yuexun\2017年外拍\闫珅\文博会911—JPG\闫珅—文博会911—JPG (973).jpg --> 00012159.jpg  这个日期无法提取，在此处手动添加
         if '文博会' in title:
@@ -256,14 +263,17 @@ class pic_classify:
         # 获取拍摄地、关键事件名、摄影师名、摄影师国籍
         loc, keyWords, name, nationality = self.get_keyWords_byseg(' '.join(title_list[3:]).replace('jpg', ''))
         print('第一次提取结果： {} {} {} {}'.format(name, nationality, loc, keyWords))
-        if len(name) == 0 or len(loc) == 0:  #若提取姓名和拍摄地失败
+        if len(name) == 0 or len(loc) == 0:  # 若提取姓名和拍摄地失败
             loc, name = self.get_keyWords_byLac(' '.join(keyWords), name, loc)  # 尝试将keywords当作标题传进去
             print('第二次提取结果： {} {} {} {}'.format(name, nationality, loc, keyWords))
-        name = name[0] if len(name) >0 else None
+        name = name[0] if len(name) > 0 else None
+
+        # if name is not None and '·' not in name and '･' not in name and '•' not in name:
+        #     nationality = ['中国']
         pic[number] = [tag_1, year, month, day, name, nationality, loc, keyWords]
         result_output.append(pic)
 
-        self.last_result = result_output  #将本次处理结果保存方便下次直接调用
+        self.last_result = result_output  # 将本次处理结果保存方便下次直接调用
         return result_output
 
     def write_to_file(self, result_output):
@@ -304,4 +314,5 @@ if __name__ == '__main__':
 
     end_time = time.time()
     run_time = round(end_time - start_time, 5)
+
     print('运行时间为：{}'.format(run_time))
