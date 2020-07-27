@@ -23,12 +23,13 @@
 #         佩德罗·阿巴斯卡尔-古巴-20150523-中国科技馆.jpg
 #         李晓尹-中国-2016年11月18日-美丽乡村顺义马坡镇南卷村7.jpg
 #         李晓尹-中国-2016年1月14日-游客在王府井猴子造型前合影留念.'''
-# title = r'周明星 雪浴故宫　周明星摄于景山公园 长安大戏院'
+# title = r'修雨辰 2017年5月15日 一带一路峰会 修雨辰 中国 2017年5月12日 5月15日 一带一路峰会工作照 修雨辰 中国 2017年5月12日 5月15日 一带一路峰会 (38).' \
+#         r'张鑫 2017—05— 11、 12 、13 、14、 一带一路 国家会议中心 2017—05—11 一带一路 国家会议中心 张鑫—2017—05—11 一带一路 国家会议中心 (103).JPG  '
 #
 # from LAC import LAC
-# # seg = LAC(mode='seg')
-# # seg_result =seg.run(title)
-# # print('seg结果:{}'.format(seg_result))
+# seg = LAC(mode='seg')
+# seg_result =seg.run(title)
+# print('seg结果:{}'.format(seg_result))
 #
 # lac = LAC(mode='lac')
 # lac_result = lac.run(title)
@@ -36,8 +37,8 @@
 # print('lac结果:{}'.format(d))
 # loc = [i for i in d if d[i] == ['LOC']]  # 摄影地点
 # print('地点：{}'.format(loc))
-#
-#
+
+
 # # '''
 # # E:\tu\pycharmWorkplace\lac\venv\Scripts\python.exe E:/tu/pycharmWorkplace/lac/fenci/test.py
 # # seg结果:['周世杰', '-', '20181025', '炫彩', '世界', '开幕式', '\\', 'DSCF4551', '-', 'JPG', "'", ' ', '\n        乔治･多帕斯', '-', '希腊', '-', '20150521', '-', '国子监', '.', 'jpg\n        ', '佩德罗·阿巴斯卡尔', '-', '古巴', '-', '20150519', '-', '雁栖湖会议中心', '道路', '.', 'jpg\n        ', '佩德罗·阿巴斯卡尔', '-', '古巴', '-', '20150523', '-', '中国科技馆', '.', 'jpg', ' ', '\n        ', '李晓尹', '-', '中国', '-', '2016年11月18日', '-', '美丽乡村', '顺义', '马坡镇', '南卷村', '7.jpg\n        ', '李晓尹', '-', '中国', '-', '2016年1月14日', '-', '游客', '在', '王府井', '猴子', '造型', '前', '合影留念', '.']
@@ -65,39 +66,49 @@
 # print(list(set(ss)))
 
 # d_order = [('月讯爱国主义', 6), ('爱国主义', 4), ('教育', 2), ('月讯', 2)]
-# d_order = ['月讯爱国主义', '爱国主义', '教育', '月讯']
+d_order = ['月讯爱国主义', '爱国主义', '教育', '月讯']
 # result = []
 # result.append(d_order[0])
-#
-# for index in range(len(d_order)-1, -1, -1):
-#     print(d_order[:index])
-#     for j in d_order[:index]:
-#         print("*"*100)
-#         # print(d_order[index])
-#         if d_order[index] not in j:
-#             print('{}不在{}中'.format(d_order[index], j))
-#             result.append(d_order[index])
-#             continue
-#         else:
-#             print('{}在{}中'.format(d_order[index], j))
-#             break
-# print(list(set(result)))
+# key_words = [('月讯爱国主义', 6), ('爱国主义', 4), ('教育', 2), ('月讯', 2)]
+result = []
+result.append(d_order[0])
 
-
+for index in range(len(d_order)-1, -1, -1):
+    print('index:{}'.format(index))
+    print(d_order[:index])
+    flag = 0 # 当这个元素不在其他元素中时标志加一，
+    for j in d_order[:index]:
+        print("*"*100)
+        # print(d_order[index])
+        if d_order[index] not in j:
+            print('{}不在{}中'.format(d_order[index], j))
+            flag += 1  # 当这个元素不在其他元素中时标志加一
+            print('d_order的标志:{}'.format(flag))
+            continue
+        else:
+            print('{}在{}中'.format(d_order[index], j))
+            print('d_order的标志:{}'.format(flag))
+            continue
+    print('{}的flag为{}'.format(d_order[index], flag))
+    print('index：{}'.format(index))
+    if flag == index:
+        result.append(d_order[index])
+        print('{}添加到result中'.format(d_order[index]))
+print(list(set(result)))
 # key_words = ['月讯爱国主义', '爱国主义', '教育', '月讯']
 
-import difflib
-
-
-def string_similar(s1, s2):
-    return difflib.SequenceMatcher(None, s1, s2).quick_ratio()
-
-str1 = r'yury-维利查卡•尤里\IMG_9511-20160524-美院-维利查卡•尤里.jpg --> 00007409.jpg'
-
-str2 = r'yury-维利查卡•尤里\IMG_9525-20160524-电影博物馆-维利查卡•尤里.jpg --> 00007410.jpg'
-print(string_similar(str1, str2))
-
-b = 2
-a = b
-a = 1
-print('a:{} b:{}'.format(a, b))
+# import difflib
+#
+#
+# def string_similar(s1, s2):
+#     return difflib.SequenceMatcher(None, s1, s2).quick_ratio()
+#
+# str1 = r'yury-维利查卡•尤里\IMG_9511-20160524-美院-维利查卡•尤里.jpg --> 00007409.jpg'
+#
+# str2 = r'yury-维利查卡•尤里\IMG_9525-20160524-电影博物馆-维利查卡•尤里.jpg --> 00007410.jpg'
+# print(string_similar(str1, str2))
+#
+# b = 2
+# a = b
+# a = 1
+# print('a:{} b:{}'.format(a, b))
