@@ -39,7 +39,7 @@ print('年份为空的数据个数:{}'.format(year_none))
 print('月份为空的数据个数:{}'.format(month_none))
 print('日期为空的数据个数:{}'.format(day_none))
 print('摄影师为空的数据个数:{}'.format(auth_none))
-print('摄影师国籍为空的数据个数:{}'.format(nationality_none))
+print('国家为空的数据个数:{}'.format(nationality_none))
 print('拍摄地点为空的数据个数:{}'.format(loc_none))
 print('关键字为空的数据个数:{}'.format(key_words_none))
 

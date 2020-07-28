@@ -34,6 +34,25 @@ class pic_classify():
             self.loc.append(line[7])
             self.key_words.append(line[8])
 
+    @staticmethod
+    def de_duplication(keyWords):
+        keyWords = [list(i) for i in keyWords]
+        result = []
+        for index in range(len(keyWords) - 1, -1, -1):
+            flag = 0  # 当这个元素不在其他元素中时标志加一，
+            add = 0
+            for j in keyWords[:index]:
+                if keyWords[index][0] not in j[0]:
+                    flag += 1  # 当这个元素不在其他元素中时标志加一
+                    continue
+                else:
+                    j[1] = int(j[1]) + keyWords[index][1]  # 合并出现次数
+                    continue
+            if flag == index:
+                result.append(keyWords[index])
+        return result
+
+
     def get_tag1(self):
         tags = list(set(self.tag1))
         print('一级标签（共{}个一级标签）：'.format(len(tags)))
@@ -51,6 +70,7 @@ class pic_classify():
                 line = i.split(' ')
                 country_to_continents[line[0]] = line[1]   # 国家和洲的对应字典
         # print(country_to_continents)
+        print('带国家信息的数据共{}条'.format(len(self.nationality)))
         country = list(set(self.nationality))  # 所有出现的国家信息
         all_country = []
         for cou in country:
@@ -75,12 +95,13 @@ class pic_classify():
                 dic[key] = dic.get(key, 0) + 1
 
         sort_list = sorted(dic.items(), key=lambda kv: (kv[1], kv[0]), reverse=True)
-
+        sort_list = self.de_duplication(sort_list)
         print('总共有{}条主题数据'.format(len(sort_list)))
         final_list = [i for i in sort_list if i[1] > 50]
         print('出现次数在50次以上的数据有{}条'.format(len(final_list)))
-        for i in final_list:
-            print(i[0], end='  |  ')
+        for i in final_list[::-1]:
+            # print('{} {}'.format(i[0], i[1]))
+            print(i, end='    ')
         print()
 
     @staticmethod
@@ -90,21 +111,6 @@ class pic_classify():
         for item in raw_list:
             dict[item] = dict.get(item, 0) + 1
         return dict
-
-    @staticmethod
-    def quchong(raw_list):
-        final_kew_words = []
-        if len(raw_list) > 0:
-            # 去重，如关键词中为 ['爱国主义教育'， '爱国主义'] 舍弃重复的’爱国主义‘
-            final_kew_words.append(raw_list[0])  # 先将第一个元素添加进去
-            for index in range(len(raw_list) - 1, -1, -1):
-                for j in raw_list[:index]:
-                    if raw_list[index] not in j:  # 后面的元素在前面未出现过则添加
-                        final_kew_words.append(raw_list[index])
-                        continue
-                    else:  # 后面的元素在前面出现过就舍弃
-                        break
-            final_kew_words = list(set(final_kew_words))
 
     def classify_bytime(self):
         years = [date[0] for date in self.create_time]
@@ -119,8 +125,14 @@ class pic_classify():
                 print('\t{}月份的照片共{}张'.format(month, month_dict[month]))
 
     def classify_byName(self):
-        # TODO(kun): 以摄影师姓名分类
-        pass
+        print('摄影师姓名统计如下：')
+        names = self.name
+        names_dict = self.count_frequrency(names)
+        sort_list = sorted(names_dict.items(), key=lambda kv: (kv[1], kv[0]), reverse=True)
+        for name in sort_list:
+            # print('{} {}'.format(name[0], name[1]))
+            print(name, end='  ')
+        print()
 
     def classify_byPlace(self):
         places = []
@@ -129,15 +141,18 @@ class pic_classify():
                 places.append(l)
         places_dict = self.count_frequrency(places)
         sort_list = sorted(places_dict.items(), key=lambda kv: (kv[1], kv[0]), reverse=True)
-        final_list = [i for i in sort_list if i[1] > 20]
-        print('地点分类如下(仅显示出现次数在20次以上的数据)：共{}个'.format(len(final_list)))
-        for place in final_list:
-            print(place[0], end='  |  ')
+        final_list = [i for i in sort_list if i[1] > 30]
+        final_list = self.de_duplication(final_list)
+        print('地点分类如下(仅显示出现次数在30次以上的数据)：共{}个'.format(len(final_list)))
+        for place in final_list[::-1]:
+            # print('{} {}'.format(place[0], place[1]))
+            print(place, end='  ')
         print()
 
     def show(self):
         self.get_tag1()
         self.classify_bytime()
+        self.classify_byName()
         self.classify_byCountry()
         self.classify_byKeywords()
         self.classify_byPlace()

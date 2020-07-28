@@ -140,48 +140,51 @@ class pic_classify:
 
     def get_keyWords_byseg(self, title):
         '''
-        通过分词并比对已存在的语料库来获取摄影师姓名、国籍和拍摄地点和关键词
-        :param title: 图片标题1
-        :return: loc, final_kew_words, names, nationality 拍摄地，关键词，摄影师名，摄影师国籍
+        通过分词并比对已存在的语料库来获取摄影师姓名、国家和拍摄地点和关键词
+        :param title: 图片标题
+        :return: loc, final_kew_words, names, nationality 拍摄地，关键词，摄影师名，国家
         '''
         print("开始对信息进行处理:{}".format(title))
 
         keywords_list = [i for i in self.seg.run(title) if i != ' ']  # 进行分词，并去除空值
         names = list(set([i for i in keywords_list if i in self.names.keys()]))  # 若摄影师名字已存在与给定的文件中,同时进行去重处理
-        nationality = list(set([i for i in keywords_list if i in self.countries.keys()]))  # 摄影师国籍
+        nationality = list(set([i for i in keywords_list if i in self.countries.keys()]))  # 标题中含有的国家信息
+        nationality = ['中国'] if len(nationality) ==0 else nationality
         loc = list(set([i for i in keywords_list if i in self.places.keys()]))  # 摄影地点
 
+        # 提取所有中文，过滤掉编号，手机号，英文名等信息
         pattern = re.compile(r"('[\u4e00-\u9fa5]+.[\u4e00-\u9fa5]+)|('[\u4e00-\u9fa5]+)")
         result = pattern.findall(str(keywords_list))
-        # 提取所有中文，过滤掉编号，手机号，英文名等信息
         # result：  [("'乔治·多帕斯", ''), ('', "'大兴"), ('', "'荟聚"), ('', "'购物"), ('', "'商场"), ("'乔治·多帕斯", '')]
         result = [i for k in result for i in k]  # 展开列表
         result2 = [i.replace('\'', '') for i in result if len(i) > 1]  # ['乔治·多帕斯', '大兴', '荟聚', '购物', '商场', '乔治·多帕斯']
         print('seg结果：{}'.format(result2))
-        d = {k: len(k) for k in result2}  # 将结果转化为字典
-        # print('切词结果:{}'.format(d))
-        d = {k: v for k, v in d.items() if k not in self.stop_words.keys() and len(
-            k) > 1 and k not in nationality and k not in names}  # 去除停用词,过滤只有一个字的词汇和已经在国籍和姓名中出现的信息
 
-        d_order = sorted(d.items(), key=lambda x: x[1], reverse=True)  # 关键词根据长度排序
+        # 将结果转化为字典，关键词为键，关键词长度为值，过滤只有一个字的词汇和已经在国家和姓名中出现的信息
+        d = {k: len(k) for k in result2 if len(k) > 1 and k not in nationality and k not in str(names)}
+        d = {k: v for k, v in d.items() if k not in self.stop_words.keys()}  # 去除停用词,
+
+        key_words = sorted(d.items(), key=lambda x: x[1], reverse=True)  # 关键词根据长度排序
         # 取前5个关键词，若关键词少于5个则取所有关键词
-        top_n = 5 if len(d_order) > 5 else len(d_order)
-        key_words = [s[0] for s in d_order[:top_n]]  # 取前5个关键字
+        top_n = 5 if len(key_words) > 5 else len(key_words)
+        key_words = [s[0] for s in key_words[:top_n]]  # 取前5个关键字
         print('前{}个关键词:{}'.format(top_n, key_words))
         final_kew_words = []
-        if len(key_words) > 0:
-            # 去重，如关键词中为 ['爱国主义教育'， '爱国主义'] 舍弃重复的’爱国主义‘
-            final_kew_words.append(key_words[0])  # 先将第一个元素添加进去
-            for index in range(len(key_words) - 1, -1, -1):
-                for j in key_words[:index]:
-                    if key_words[index] not in j:  # 后面的元素在前面未出现过则添加
-                        final_kew_words.append(key_words[index])
-                        continue
-                    else:  # 后面的元素在前面出现过就舍弃
-                        break
-            final_kew_words = list(set(final_kew_words))
+        # 去重，若关键字列表中含有重复项，如['月讯爱国主义教育', '月讯', '爱国主义']这种情况，去重后只保留['月讯爱国主义教育']
 
-        print("关键词排序结果：{}".format(d_order))
+        # 从最后一个元素倒序遍历（整个字典时按照元素长度递减的，因此采用倒序）
+        for index in range(len(key_words) - 1, -1, -1):
+            flag = 0  # 当这个元素不在其他元素中时标志加一，
+            for j in key_words[:index]:  # 遍历除了最后一个元素外的其他元素
+                if key_words[index] not in j:
+                    flag += 1  # 当这个元素不在其他元素中时标志加一
+                    continue
+                else:
+                    continue
+            if flag == index:  # 相等时说明词元素不包含在其他任一个元素中
+                final_kew_words.append(key_words[index])
+
+        print("关键词排序结果：{}".format(key_words))
         print("去重后的结果：{}".format(final_kew_words))
         return loc, final_kew_words, names, nationality
 
@@ -210,6 +213,11 @@ class pic_classify:
         return loc, names
 
     def similar_filter(self, new_title):
+        '''
+        判断两个标题的相似度，若相似度在0.94以上则返回上一次的处理（对照片编号需要单独处理）
+        :param new_title: 这一次的图片标题
+        :return: 相似则返回上一次的处理结果，失败返回False
+        '''
         print('*' * 100)
         print('上一个标题：' + self.last_title)
         print('这一个标题：' + new_title)
@@ -217,6 +225,7 @@ class pic_classify:
         print('本标题与上一标题相似度为：{}'.format(similar_value))
         if similar_value > 0.94:
             print('本标题与上一标题类似，不处理')
+            # 其他数据相似，但编号要单独处理
             result_output = []
             pic = {}
             line = new_title.replace('-', ' ').replace('+', ' ')
@@ -231,7 +240,7 @@ class pic_classify:
 
     def get_data(self, line):
         """
-        读取照片标题集合的文件，进行处理
+        对每一行的标题进行处理
         :param line: 图片标题信息
         :return:result_output 返回每个标题提取出的信息列表
         """
@@ -239,38 +248,42 @@ class pic_classify:
         # 判断本次标题是否和上次标题相似
         new_title = line
         result_output = self.similar_filter(new_title)
-        self.last_title = new_title
+        self.last_title = new_title  # 将本次的标题保存起来
         if result_output:
             return result_output
 
         # 输出结果
         result_output = []
-        # 定义字典存放每一个标题提取中的数据
+        # 定义字典存放提取中的数据
         pic = {}
         # 获取年月日
         year, month, day = self.get_time(r'' + line[:-18:].replace('.', '-').replace(' ', ''))
         print('提取出的年月日：{}  {}  {}'.format(year, month, day))
 
-        # 去除连字符
-        line = line.replace('-', ' ').replace('+', ' ')
-        number = line[-13::].strip('\n')  # 图片编号
-        self.last_number = number
+        # 获取图片编号
+        line = line.replace('-', ' ').replace('+', ' ')  # 去除连字符
+        number = line[-13::].strip('\n')
+        self.last_number = number  # 将本次的标题保存起来
 
+        # 一级标签，作品来源
         # 将图片标题分割为列表，如['Z:', 'yuexun', '2018图编外拍 2', '炫彩世界收图-3124张', '周世杰-20181025炫彩世界开幕式', 'DSCF4066.JPG']
         title_list = line[:-15:].split('\\')
-        tag_1 = title_list[2]  # 一级标签，作品来源
+        tag_1 = title_list[2]
 
-        # 获取拍摄地、关键事件名、摄影师名、摄影师国籍
+        # 获取拍摄地、关键事件名、摄影师名、国家信息
         loc, keyWords, name, nationality = self.get_keyWords_byseg(' '.join(title_list[3:]).replace('jpg', ''))
         print('第一次提取结果： {} {} {} {}'.format(name, nationality, loc, keyWords))
         if len(name) == 0 or len(loc) == 0:  # 若提取姓名和拍摄地失败
             loc, name = self.get_keyWords_byLac(' '.join(keyWords), name, loc)  # 尝试将keywords当作标题传进去
             print('第二次提取结果： {} {} {} {}'.format(name, nationality, loc, keyWords))
-        name = name[0] if len(name) > 0 else None
+        name = name[0] if len(name) > 0 else None  # 把neme从列表转换为字符串
 
+        # 对姓名进行处理，若不含有国外姓名的连字符的就将国籍设置为中国
         # if name is not None and '·' not in name and '･' not in name and '•' not in name:
         #     nationality = ['中国']
+        # 以照片编号为键，其他属性为值存放至字典中
         pic[number] = [tag_1, year, month, day, name, nationality, loc, keyWords]
+        # 将结果添加至列表中
         result_output.append(pic)
 
         self.last_result = result_output  # 将本次处理结果保存方便下次直接调用
@@ -288,31 +301,37 @@ class pic_classify:
 
     @timmer
     def singleprocess(self):
+        '''
+        从文件中读取所有标题信息
+        :return:
+        '''
         with open(self.listDirs, 'r', encoding='utf-8') as file:
             content = file.readlines()
+        # 调用函数对每一行数据进行处理， 结果为列表
         result_output = [self.get_data(line) for line in content]
+        # 将处理结果写入文件
         self.write_to_file([result_output])
 
 
-if __name__ == '__main__':
-    start_time = time.time()
-
+@timmer
+def run():
+    # 主函数入口
     old = sys.stdout  # 将当前系统输出储存到一个临时变量中
     f = open('output.txt', 'w', encoding='utf-8')
     sys.stdout = f  # 输出重定向到文件
 
+    # 获取路径，定义文件信息
     Path = os.path.dirname(os.getcwd())
     dataPath = Path + os.sep + 'data'
-    listDirs = os.path.join(dataPath, 'renommelog.txt')
-    result = os.path.join(dataPath, 'result.txt')
-    pic = pic_classify(listDirs, result)
+    listDirs = os.path.join(dataPath, 'renommelog.txt')  # 源文件。记录所有图片标题
+    result = os.path.join(dataPath, 'result.txt')  # 存放处理结果
+
+    pic = pic_classify(listDirs, result)  # 新建文件处理类
     pic.singleprocess()  # 单进程，方便观察输出结果
-    # pic.multiprocess() #多进程模式
 
     sys.stdout = old  # 还原原系统输出
     f.close()
 
-    end_time = time.time()
-    run_time = round(end_time - start_time, 5)
 
-    print('运行时间为：{}'.format(run_time))
+if __name__ == '__main__':
+    run()
